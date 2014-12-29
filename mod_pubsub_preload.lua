@@ -5,7 +5,10 @@ local config = require "core.configmanager";
 local st = require "util.stanza";
 local modulemanager = require "modulemanager";
 local pubsub = modulemanager.get_module(module:get_host(), "pubsub")
+local service = hosts[module.host].modules.pubsub.service
+local nodes = module:get_option("pubsub_preload") or {};
 
+local xmlns_colibri = "http://jitsi.org/protocol/colibri";
 --[[
 Component "your.pubsub.serivce " "pubsub"
     modules_enabled = { "pubsub_preload" }
@@ -15,8 +18,23 @@ Component "your.pubsub.serivce " "pubsub"
     }
 ]]
 
+module:hook_object_event(service.events, "item-published", function (event) 
+    local node, item = event.node, event.item
+
+    if not nodes[node] then return; end
+
+    for stats in item:childtags("stats", xmlns_colibri) do
+        local statstable = {}
+        for stat in stats:childtags("stat", xmlns_colibri) do
+            statstable[stat.attr.name] = stat.attr.value
+        end
+        --module:log("debug", "%s stats: %s", event.actor, serialization.serialize(statstable))
+
+        module:fire_event("colibri-stats", { stats = statstable, bridge = event.actor })
+    end
+end)
+
 local function preload() 
-    local nodes = module:get_option("pubsub_preload") or {};
     for nodename, affiliations in pairs(nodes) do
         local ok, err = pubsub.service:create(nodename, true);
         -- ignore return value
