@@ -3,7 +3,7 @@
 -- this creates some pubsub nodes and configures publishers on them
 local config = require "core.configmanager";
 local st = require "util.stanza";
-local modulemanager = require "modulemanager";
+local modulemanager = require "core.modulemanager";
 local pubsub = modulemanager.get_module(module:get_host(), "pubsub")
 local service = hosts[module.host].modules.pubsub.service
 local nodes = module:get_option("pubsub_preload") or {};
